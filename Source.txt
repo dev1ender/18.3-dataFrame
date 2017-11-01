@@ -1,0 +1,56 @@
+--Problem 1
+--loading the holiday file
+val HolidaySet = sc.textFile("/user/cloudera/18.1/S18_Dataset_Holidays.txt")
+
+--Creating the tuple of the holiday tuple
+val HolidayTuple = HolidaySet.map(x => {
+val row = x.split(",").toList
+(row.apply(0).toInt,row.apply(1),row.apply(2),row.apply(3),row.apply(4).toInt,row.apply(5).toInt)
+})
+
+
+--loading the trasnport file and creating the tuple of it
+val TransportSet = sc.textFile("/user/cloudera/18.1/S18_Dataset_Transport.txt")
+val TransportTuple = TransportSet.map(x=>{
+val row = x.split(",").toList
+(row.apply(0),row.apply(1).toInt)
+})
+
+--load the userdata into the spark shell
+val UserDataSet = sc.textFile("/user/cloudera/18.1/S18_Dataset_User_details.txt")
+
+--creating the tupple of the user data
+val UserTuple = UserDataSet.map(x=>{
+val row = x.split(",").toList
+(row.apply(0).toInt,row.apply(1),row.apply(2).toInt)
+})
+
+
+--filtering the feilds req
+val HolidayFilterFeilds = HolidayTuple.map(x=>x._1->x._4)
+val UserFilterFeilds = UserTuple.map(x=> x._1->x._3)
+
+val JoinUserHoliday = UserFilterFeilds.join(HolidayFilterFeilds).map(x=>(x._1,x._2._1,x._2._2))
+
+val AssignAgeGroup = JoinUserHoliday.map(x =>x._3->( x._1 , {
+if(x._2 <20) "<20"
+else if(x._2 > 35) ">35"
+else "20-35"
+}))
+
+val JoinHoildayUserTransport = AssignAgeGroup.join(TransportTuple).map(x => x._2._1._2->x._2._2).groupByKey().map(x => x._1->x._2.sum)
+JoinHoildayUserTransport.foreach(println)
+
+--problem 2
+val HolidayFilterFeilds = HolidayTuple.map(x=>(x._1,x._4,x._6))
+val UserFilterFeilds = UserTuple.map(x=> x._1->x._3)
+
+val AssignAgeGroup = JoinUserHoliday.map(x =>(x._3 ,( {
+if(x._1 <20) "<20"
+else if(x._1 > 35) ">35"
+else "20-35"
+},x._2,x._4)))
+
+val JoinHoildayUserTrasnport = AssignAgeGroup.join(TransportTuple).map(x=>((x._2._1._1,x._2._1._3),x._2._2)).groupByKey().map(x=>x._1->x._2.sum)
+JoinHoildayUserTrasnport.foreach(println)
+
